@@ -148,6 +148,8 @@ int main(int argc, char *argv[]){
 
 		// temos que alinhar?
 		if(_right_space || _left_space){
+
+			// tamanho total do buffer, exagerar um pouco
 			register int total = outlen+_left_space+_right_space;
 
 			// criar buffer para alocacao do texto, +2 para evitar problemas
@@ -160,28 +162,47 @@ int main(int argc, char *argv[]){
 			if(_output!=NULL){
 				register int k, m;					// contador futil
 				register int offset = _left_space;	// bytes saltar
+				register int maxwrites = outlen;
 
-				// preencher com espacos a esquerda
-				if(_left_space)
-					for(k=0; k < _left_space; k++)
-						_output[k] = ' ';
-					//-
+				// Preencher buffer com espacos
+				for(k=0; k < buflen; k++)
+					_output[k] = ' ';
 				//-
 
-				// colocar texto
-				for(k=offset, m=0; k < _left_space + outlen; k++)
-					_output[k] = _output_string[m++];
-				//-
+				// Direita ou esquerda?
+				if(_right_space){
+					// DIREITA
 
-				// preencher com espacos a direita
-				if(_right_space)
-					for(k = _left_space + outlen; k < total; k++)
-						_output[k] = ' ';
-					//-
-				//-
+					// buffer termina no limite
+					_output[_right_space] = 0;
+
+					// tamanho do texto nao pode ser maior que o espacamento
+					maxwrites = _right_space;
+
+					// copiar texto
+					for(k=0, m=0; m < maxwrites && m < outlen; k++) _output[k] = _output_string[m++];
+
+				}else{
+					// ESQUERDA
+
+					// buffer termina no limite
+					_output[_left_space] = 0;
+
+					// espacos a esquerda
+					offset = _left_space - outlen;
+					// caso o texto senha maior, teremos que pica-lo
+					if(offset < 0){ offset = 0; maxwrites = _left_space; }
+
+					for(k=offset, m=0; m < maxwrites && m < outlen; k++) _output[k] = _output_string[m++];
+
+				}
 
 				// imprimir buffer na saida
 				printf("%s", _output);
+
+				// devolver memoria
+				free(_output);
+				_output = 0;
 
 			}
 			// else{ PROBLEMA NA PORCARIA DA MEMORIA }
