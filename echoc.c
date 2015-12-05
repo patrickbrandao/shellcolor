@@ -38,6 +38,11 @@ int _do_break = 1;
 // resetar cores do terminal apos terminar
 int _do_reset = 1;
 
+// espacamento
+int _left_space = 0;
+int _right_space = 0;
+
+
 static char* argv0;
 
 #define set_color(b)		if(cl) bgcolor = b; else txtcolor = b
@@ -61,6 +66,8 @@ static void parse_args( int argc, char** argv ){
 
 		// recebe argumentos
 		cl = 0;
+
+		// opcoes multi-parametros
 		if(!strcmp(argv[argn],"-c") || !strcmp(argv[argn],"-b")){
 			if(!strcmp(argv[argn],"-b")) cl=1;
 
@@ -81,6 +88,25 @@ static void parse_args( int argc, char** argv ){
 			continue;
 		}
 
+		// definicao de espacamento
+		// ESQUERDA
+		if(strcmp(argv[argn],"-L") ==0 ){
+			if(argn < argc) argn++; else continue;	
+			// tamanho do espaco para alinhar a esquerda
+			_left_space = atoi(argv[argn++]);
+			if(_left_space < 0) _left_space = 0;
+			continue;
+		}
+		// DIREITA
+		if(strcmp(argv[argn],"-R") ==0 ){
+			if(argn < argc) argn++; else continue;	
+			// tamanho do espaco para alinhar a esquerda
+			_right_space = atoi(argv[argn++]);
+			if(_right_space < 0) _right_space = 0;
+			continue;
+		}
+
+		// opcoes singulares
 		if(!strcmp(argv[argn],"-h") || !strcmp(argv[argn],"--help")){ usage(); }
 		if(!strcmp(argv[argn],"-B")){ _text_effect = 1; ++argn; continue; }
 		if(!strcmp(argv[argn],"-s")){ _text_effect = 2; ++argn; continue; }
@@ -101,25 +127,115 @@ static void parse_args( int argc, char** argv ){
 
 // principal
 int main(int argc, char *argv[]){
+	register int outlen = 0;
 	argv0 = argv[0];
 	_output_string = (char) 0;
 
+	// processar argumentos do usuario
 	parse_args( argc, argv );
-	
+
 	if(txtcolor <= 9 && _light) txtcolor+= 9;
 	// printf("txtcolor=[%d] bgcolor=[%bgcolor]\n", txtcolor, bgcolor);
-	
+
+	// Definir coloracao
 	printf("%s%s%s",background_colors[bgcolor], effects[_text_effect], text_colors[txtcolor]);
 
-	if(_output_string && strlen(_output_string)) printf("%s", _output_string);
+	// tamanho do texto de saida
+	if(_output_string) outlen = strlen(_output_string);
 
-	// printf("%s%s",background_colors[bgcolor],text_colors[txtcolor]);
-	
+	// temos conteudo para mostrar?
+	if(outlen){
+
+		// temos que alinhar?
+		if(_right_space || _left_space){
+			register int total = outlen+_left_space+_right_space;
+
+			// criar buffer para alocacao do texto, +2 para evitar problemas
+			register int buflen = total + 2;
+			char *_output;
+
+			// alocar com preenchimento zero
+			_output = calloc(buflen, sizeof(char) * buflen);
+
+			if(_output!=NULL){
+				register int k, m;					// contador futil
+				register int offset = _left_space;	// bytes saltar
+
+				// preencher com espacos a esquerda
+				if(_left_space)
+					for(k=0; k < _left_space; k++)
+						_output[k] = ' ';
+					//-
+				//-
+
+				// colocar texto
+				for(k=offset, m=0; k < _left_space + outlen; k++)
+					_output[k] = _output_string[m++];
+				//-
+
+				// preencher com espacos a direita
+				if(_right_space)
+					for(k = _left_space + outlen; k < total; k++)
+						_output[k] = ' ';
+					//-
+				//-
+
+				// imprimir buffer na saida
+				printf("%s", _output);
+
+			}
+			// else{ PROBLEMA NA PORCARIA DA MEMORIA }
+
+		}else{
+
+			// simplesmente jogar na saida
+			printf("%s", _output_string);
+
+		}
+	}
+
 	// resetar cor
-	if(_do_reset) printf("%s%s",background_colors[0],text_colors[0]);
+	if(_do_reset)
+		printf("%s%s",background_colors[0],text_colors[0]);
+	//-
 
 	// quebra final de linha
-	if(1==_do_break) printf("\n");
+	if(1==_do_break)
+		printf("\n");
+	//-
 
-	return(0);
+	return 0;
+
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
