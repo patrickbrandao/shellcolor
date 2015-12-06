@@ -48,10 +48,11 @@ int _convert_case = 0; 	// 0 = nao alterar case, 1=upper, 2=lower
 // conversao para formato numerico
 int _to_number_format = 0;		// 0=nao interpretar numero, 2=converter para formato numerico, exemplo: 123456 para 123.456
 
+#define MY_MALLOC(PTR, MEMSIZE)		PTR = malloc(MEMSIZE+1); if(PTR){ bzero(PTR, MEMSIZE+1); }else exit(1);
+#define MY_STRDUP(PTR, STR)			MY_MALLOC(PTR, strlen(STR) * sizeof(char) + 1); strcpy(PTR, STR)
+
 static char* argv0;
-
 #define set_color(b)		if(cl) bgcolor = b; else txtcolor = b
-
 
 static void usage( void ) {
 	fprintf( stderr, "Autor: Marcio Araujo <contato@mysab.com.br>\nUsage:  %s -c (color) -b (bgcolor) [-n] [-l] [-B] [-s] [-p] [-k] [-N] TEXT\n", argv0 );
@@ -72,22 +73,6 @@ static void usage( void ) {
 	fprintf( stderr, "\tblue, red, green, magenta, cyan, pink, yellow, white, light, black, gray\n");
 	exit( 1 );
 }
-
-/*
-blue
-red
-green
-magenta
-cyan
-cian
-pink
-yellow
-white
-light
-black
-
-
-*/
 
 #define TEST_COLOR(TEXT, VALUE)			if(0==strcmp(argv[argn],TEXT)){ argn++; set_color(VALUE); continue; }
 static void parse_args( int argc, char** argv ){
@@ -172,186 +157,240 @@ static void parse_args( int argc, char** argv ){
 		if(0==strcmp(argv[argn],"-W")){ _convert_case = 2; ++argn; continue; }
 
 		// texto
-		if(strlen(argv[argn])) _output_string = (char *)argv[argn];
+		if(strlen(argv[argn])) _output_string = strdup(argv[argn]);
 
 		++argn;
 	}
     if ( argn != argc ) usage();
 }
 
+#define STR_EXIST_OR_RETURN(STR)	if(!STR || !STR[0]) return
+
+// inverter uma string
+void str_reverse(char *str){
+	char *buf = NULL;
+	register int len, i;
+	register int total;
+
+	// nada a fazer
+	STR_EXIST_OR_RETURN(str);
+
+	// tamanho da string
+	len = strlen(str);
+
+	// nao da pra inverter 1 byte ne!
+	if(len <= 2) return;
+
+	// alocar
+	total = (len+1) * (sizeof(char)) + 1;
+	MY_MALLOC(buf, total);
+
+	// inverter
+	for(i=0; i < len; i++) buf[i] = str[len-i-1];
+
+	// copiar de volta pro original
+	for(i=0; i < len; i++) str[i] = buf[i];
+}
+
+// preencher ponteiro com espacos
+void bspace(char *ptr, int size){
+	register int i;
+	for(i=0; i<size;i++) ptr[i] = ' ';
+}
+
+// retirar todos os caracteres nao-numericos
+void str_only_numbers(char *str){
+	register int len = 0, k = 0, i = 0;
+	// nada a fazer
+	STR_EXIST_OR_RETURN(str);
+	len = strlen(str);
+	for(i = 0; i < len; i++){
+		if(isdigit(str[i]))
+			str[k++] = str[i];
+		//-
+	}
+	// apagar o resto
+	for(i = k; i < len; i++) str[i] = 0;
+}
+
+// depurar espaco de memoria
+void str_mem_debug(char *ptr, int size){
+	register int i, j=0;
+	printf("STRING DEBUG, LEN (%d) SIZE (%d):\n", strlen(ptr), size);
+	for(i=0; i< size; i++){
+		printf("[%c] %h", ptr[i] ? ptr[i] : '?', ptr[i]);
+		if(j++==40){ printf("\n"); j = 0; }
+	}
+	printf("\n\n");
+}
+
+// formatar numero, entrada: 1234 saida 1.234
+char *str_number_format(const char *input){
+	register int alocsize = 0, inputlen = 0;
+	register int newlen = 0, k, m, n;
+	char *ret = NULL, *workspace = NULL;
+
+	// nada a fazer
+	if(!input || !input[0]) return ret;
+
+	// tamanho da entrada
+	inputlen = strlen(input);
+	if(inputlen < 4){
+		// nada a fazer, duplicar e retornar
+		MY_STRDUP(ret, input);
+		return ret;
+	}
+
+	// tamanho da string para trabalho
+	alocsize = (inputlen * sizeof(char)) + (inputlen > 3 ? inputlen / 3 : inputlen) + 3;
+
+	// alocar espaco para retorno e gerar copia local
+	MY_MALLOC(ret, alocsize);
+	MY_MALLOC(workspace, alocsize);
+	strcpy(ret, input);
+
+	// apenas numeros sao permitidos
+	str_only_numbers(ret);
+
+	newlen = strlen(ret);
+	if(!newlen++) sprintf(ret, "0");
+
+	// inverter ordem
+	str_reverse(ret);
+
+	// temos apenas os numeros invertidos, escreve-los com pontos
+	k = 0;
+	n = 1;
+	for(m = 0; m < newlen; m++){
+		workspace[k++] = ret[m];
+		if(n++ == 3){ n = 0; if( m+2 < newlen) workspace[k++] = '.'; }
+	}
+	// inverter novamente
+	str_reverse(workspace);
+	return workspace;
+}
+
+// converter para maiusculas
+void str_to_upper(char *str){
+	char *_str;
+	register int i, len;
+	register int k;
+	STR_EXIST_OR_RETURN(str);
+	len = strlen(str);
+	if(len)
+		for(i=0; i < len; i++)
+			str[i] = toupper(str[i]);
+	//-
+}
+
+// converter para minusculas
+void str_to_lower(char *str){
+	char *_str;
+	register int i, len;
+	register int k;
+	STR_EXIST_OR_RETURN(str);
+	len = strlen(str);
+	if(len)
+		for(i=0; i < len; i++)
+			str[i] = tolower(str[i]);
+	//-
+}
+
+// colocar espacos a esquerda do texto
+char *str_pad_left(const char *input, int space){
+	char *ret = NULL;
+	register int i, len, offset = 0, idx = 0;
+
+	// espaco necessario (space + 1)
+	MY_MALLOC(ret, space + 1);
+
+	// preencher com espacos que vamos utilizar
+	bspace(ret, space);
+
+	// usuario nao passou nada
+	// facil retornar apenas espacos
+	if(!input || !input[0]) return ret;
+
+	// tamanho do texto
+	len = strlen(input);
+
+	offset = space - len;
+	if(offset < 0) offset = 0;
+
+	// copiar por cima dos espacos, respeitando limites
+	for(i=offset; i < space; i++) ret[i] = input[idx++];
+
+	return ret;
+}
+
+// colocar espacos a direita do texto
+char *str_pad_right(const char *input, int space){
+	char *ret = NULL;
+	register int i, len;
+
+	// espaco necessario (space + 1)
+	MY_MALLOC(ret, space + 1);
+
+	// preencher com espacos que vamos utilizar
+	bspace(ret, space);
+
+	// usuario nao passou nada
+	// facil retornar apenas espacos
+	if(!input || !input[0]) return ret;
+
+	// copiar texto dentro do limite
+	len = strlen(input);
+	if(len > space) len = space;
+	for(i = 0; i < len; i++) ret[i] = input[i];
+
+	// str_mem_debug(ret, space);
+	return ret;
+}
+
 // principal
 #define BIGINT unsigned long long int
 int main(int argc, char *argv[]){
+	// variaveis
 	register int outlen = 0;
-	register int k, m, n;
-	register int total;
-	char *workmem = NULL, *newoutput = NULL;
-	int needfree = 0;
-	int alocsize = 0;
 
+	// inits
 	argv0 = argv[0];
 	_output_string = (char) 0;
 
 	// processar argumentos do usuario
 	parse_args( argc, argv );
 
-	if(txtcolor <= 9 && _light) txtcolor+= 9;
-	// printf("txtcolor=[%d] bgcolor=[%bgcolor]\n", txtcolor, bgcolor);
 
 	// Definir coloracao
+	if(txtcolor <= 9 && _light) txtcolor+= 9;
 	printf("%s%s%s",background_colors[bgcolor], effects[_text_effect], text_colors[txtcolor]);
 
-	// tamanho do texto de saida
+	// Processar texto de entrada
 	if(_output_string) outlen = strlen(_output_string);
 
-	// temos conteudo para mostrar?
-	if(outlen){
-
-		// formatar case?
-		if(_convert_case == 1){
-			// upper
-			for(k=0; k < outlen; k++) _output_string[k] = toupper(_output_string[k]);
-		}else if(_convert_case == 2){
-			// lower
-			for(k=0; k < outlen; k++) _output_string[k] = tolower(_output_string[k]);
-		}
-
-		// temos que alinhar ou formatar? precisamos copiar
-		if(_right_space || _left_space || _to_number_format){
-
-			// tamanho total do buffer, exagerar um pouco
-			// - espaco para a string
-			// - espaco para padding left e right
-			// - espaco para formatacao de numeros
-			// - um pouquinho mais
-			total = outlen + _left_space + _right_space + (outlen > 3 ? outlen / 3 + 1 : 1) + 2;
-			alocsize = total * sizeof(char);
-
-			// alocar copia
-			newoutput = malloc(alocsize); bzero(newoutput, alocsize);
-			if(_to_number_format) workmem = malloc(alocsize); bzero(workmem, alocsize);
-			needfree = 1;
-
-			//strncpy(newoutput, _output_string, total);
-
-		}
-
-		// formatar numero?
-		if(_to_number_format && outlen){
-			int newlen = 0;
-			int rest = outlen;
-
-			// copiar apenas numeros, invertendo
-			n = 0;
-			for(m=outlen-1; m >= 0; m--){
-				char x = _output_string[m];
-				if(isdigit(x)) newoutput[newlen++] = x;
-			}
-
-			// nenhum numero?
-			if(!newlen) newoutput[newlen++] = '0';
-
-			// limpar output-string
-			bzero(_output_string, outlen);
-
-			// copiar de volta para output-string invertida
-			for(m=0; m <= newlen; m++) _output_string[m] = newoutput[m];
-
-			// limpar nova output
-			bzero(newoutput, newlen);
-
-			// temos apenas os numeros invertidos, escreve-los com pontos
-			k = 0;
-			n = 1;
-			for(m = 0; m < newlen; m++){
-				workmem[k++] = _output_string[m];
-				if(n == 3){
-					n = 0;
-					if(m + 1 < newlen) workmem[k++] = '.';
-				}
-				n++;
-			}
-			newlen = k;
-
-			// inverter novamente
-			k = 0;
-			for(m = newlen-1; m >=0; m--) newoutput[k++] = workmem[m];
-
-			// pronto
-			_output_string = newoutput;
-			outlen = newlen;
-
-		}else if(_to_number_format){
-
-			// nao informou nada no parametro, mas quer numero, toma um ZERO
-			printf("0");
-
-		}
-
-		// temos que alinhar?
-		if(outlen && (_right_space || _left_space)) {
-
-			// tamanho total do buffer, exagerar um pouco
-			register int total = outlen+_left_space+_right_space;
-
-			// criar buffer para alocacao do texto, +2 para evitar problemas
-			register int buflen = total + 2;
-			char *_output;
-
-			// alocar com preenchimento zero
-			bzero(workmem, alocsize);
-			_output = calloc(buflen, sizeof(char) * buflen);
-
-			if(workmem!=NULL){
-				register int offset = _left_space;	// bytes saltar
-				register int maxwrites = outlen;
-
-				// Preencher buffer com espacos
-				for(k=0; k < buflen; k++)
-					workmem[k] = ' ';
-				//-
-
-				// Direita ou esquerda?
-				if(_right_space){
-					// DIREITA
-
-					// buffer termina no limite
-					workmem[_right_space] = 0;
-
-					// tamanho do texto nao pode ser maior que o espacamento
-					maxwrites = _right_space;
-
-					// copiar texto
-					for(k=0, m=0; m < maxwrites && m < outlen; k++) workmem[k] = _output_string[m++];
-
-				}else{
-					// ESQUERDA
-
-					// buffer termina no limite
-					workmem[_left_space] = 0;
-
-					// espacos a esquerda
-					offset = _left_space - outlen;
-					// caso o texto senha maior, teremos que pica-lo
-					if(offset < 0){ offset = 0; maxwrites = _left_space; }
-
-					for(k=offset, m=0; m < maxwrites && m < outlen; k++) workmem[k] = _output_string[m++];
-
-				}
-
-				// imprimir buffer na saida
-				printf("%s", workmem);
-
-			}
-			// else{ PROBLEMA NA PORCARIA DA MEMORIA }
-
-		}else{
-
-			// nenhuma formatacao exigida, apenas jogar na tela
-			printf("%s", _output_string);
-
-		}
+	// formatar case?
+	if(outlen && _convert_case){
+		if(_convert_case == 1) str_to_upper(_output_string);	// Maiusculas
+		if(_convert_case == 2) str_to_lower(_output_string);	// Minusculas
 	}
+
+	// apenas numeros? formatar
+	if(_to_number_format){
+		_output_string = str_number_format(_output_string);		// de 1234 para 1.234
+		outlen = strlen(_output_string);
+	}
+
+	// fazer padding?
+	if(_left_space){
+		_output_string = str_pad_left(_output_string, _left_space);
+	}else if(_right_space){
+		_output_string = str_pad_right(_output_string, _right_space);
+	}
+
+// FINALIZAR -------------------------------------------------------------------------
+
+	// jogar saida
+	printf("%s", _output_string);
 
 	// resetar cor
 	if(_do_reset)
@@ -364,12 +403,12 @@ int main(int argc, char *argv[]){
 	//-
 
 	// liberar memoria alocada nas formatacoes
-	if(needfree){
-		if(workmem != NULL) free(workmem);
-		if(newoutput != NULL) free(newoutput);
-	}
+	// MY_FREE();
 
 	return 0;
+
+
+
 
 }
 
