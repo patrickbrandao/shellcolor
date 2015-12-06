@@ -74,7 +74,7 @@ static void usage( void ) {
 	exit( 1 );
 }
 
-#define TEST_COLOR(TEXT, VALUE)			if(0==strcmp(argv[argn],TEXT)){ argn++; set_color(VALUE); continue; }
+#define TEST_COLOR(TEXT, VALUE)			if(strcmp(TEXT, argv[argn])==0){ argn++; set_color(VALUE); continue; }
 static void parse_args( int argc, char** argv ){
 	int argn = 1;
 	int cl = 0;
@@ -84,7 +84,7 @@ static void parse_args( int argc, char** argv ){
 		cl = 0;
 
 		// opcoes multi-parametros
-		if(0==strcmp(argv[argn],"-c") || 0==strcmp(argv[argn],"-b")){
+		if( argn +1 < argc && (0==strcmp(argv[argn],"-c") || 0==strcmp(argv[argn],"-b")) ){
 			if(0==strcmp(argv[argn],"-b")) cl=1;
 
 			if(argn < argc) argn++; else continue;
@@ -118,6 +118,9 @@ static void parse_args( int argc, char** argv ){
 
 			argn++;
 		}
+
+		// evitar sair do espaco de memoria
+		if(argn >= argc) break;
 
 		// definicao de espacamento
 		// ESQUERDA
@@ -360,6 +363,8 @@ int main(int argc, char *argv[]){
 	// processar argumentos do usuario
 	parse_args( argc, argv );
 
+	// evitar apontar para espaco nulo
+	if(_output_string==NULL) _output_string = strdup("");
 
 	// Definir coloracao
 	if(txtcolor <= 9 && _light) txtcolor+= 9;
