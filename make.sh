@@ -13,22 +13,25 @@
 
 	echo -n " - setcolor "
 	rm $USRDIR/bin/setcolor $TMPDST$USRDIR/bin/setcolor 2>/dev/null
-	gcc setcolor.c -o $TMPDST$USRDIR/bin/setcolor
-	if [ "$?" = "0" ]; then echo "OK"; else echo "ERR"; exit 1; fi
+	gcc setcolor.c -o $TMPDST$USRDIR/bin/setcolor; r="$?"
+	if [ "$r" = "0" ]; then echo "OK"; else echo "ERR"; exit 1; fi
+	strip --strip-unneeded $TMPDST$USRDIR/bin/setcolor
 	cp $TMPDST$USRDIR/bin/setcolor $USRDIR/bin/setcolor
 	chmod 755 $TMPDST$USRDIR/bin/setcolor $USRDIR/bin/setcolor
 
 	echo -n " - echoc "
 	rm $USRDIR/bin/echoc $TMPDST$USRDIR/bin/echoc 2>/dev/null
-	gcc echoc.c -o $TMPDST$USRDIR/bin/echoc
-	if [ "$?" = "0" ]; then echo "OK"; else echo "ERR"; exit 1; fi
+	gcc echoc.c -o $TMPDST$USRDIR/bin/echoc; r="$?"
+	if [ "$r" = "0" ]; then echo "OK"; else echo "ERR"; exit 1; fi
+	strip --strip-unneeded $TMPDST$USRDIR/bin/echoc
 	cp $TMPDST$USRDIR/bin/echoc $USRDIR/bin/echoc
 	chmod 755 $TMPDST$USRDIR/bin/echoc $USRDIR/bin/echoc
 
 	echo -n " - beep "
 	rm $USRDIR/bin/beep $TMPDST$USRDIR/bin/beep 2>/dev/null
-	gcc beep.c -o $TMPDST$USRDIR/bin/beep
-	if [ "$?" = "0" ]; then echo "OK"; else echo "ERR"; exit 1; fi
+	gcc beep.c -o $TMPDST$USRDIR/bin/beep; r="$?"
+	if [ "$r" = "0" ]; then echo "OK"; else echo "ERR"; exit 1; fi
+	strip --strip-unneeded $TMPDST$USRDIR/bin/beep
 	cp $TMPDST$USRDIR/bin/beep $USRDIR/bin/beep
 	chmod 755 $TMPDST$USRDIR/bin/beep $USRDIR/bin/beep
 
@@ -47,9 +50,23 @@
 	for x in $statuslist; do
 		echo -n " - status :: $x "
 		rm $USRDIR/bin/status $TMPDST$USRDIR/bin/status 2>/dev/null
-		gcc status.c -o $TMPDST$USRDIR/bin/$x
-		if [ "$?" = "0" ]; then echo "OK"; else echo "ERR"; exit 1; fi
+		gcc status.c -o $TMPDST$USRDIR/bin/$x; r="$?"
+		if [ "$r" = "0" ]; then echo "OK"; else echo "ERR"; exit 1; fi
+		strip --strip-unneeded $TMPDST$USRDIR/bin/$x
 		cp $TMPDST$USRDIR/bin/$x $USRDIR/bin/$x
 		chmod 755 $TMPDST$USRDIR/bin/$x $USRDIR/bin/$x
 	done
 	echo "OK"
+
+
+
+
+
+
+
+
+
+
+
+
+
